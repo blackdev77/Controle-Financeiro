@@ -84,7 +84,7 @@ export function Dashboard() {
 
       {/* --- NÍVEL 1: Visão Geral --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-color), var(--primary-hover))', color: 'white', borderColor: 'transparent' }}>
+        <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h3 className="tracking-tight" style={{ fontSize: '1.1rem', opacity: 0.9, fontWeight: 500, margin: 0 }}>Seu patrimônio</h3>
             <DollarSign opacity={0.8} />
@@ -176,7 +176,7 @@ export function Dashboard() {
           {pendingTransactions.length > 0 ? (
             <div className="flex flex-col gap-3">
               {pendingTransactions.map(t => (
-                <div key={t.id} className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                <div key={t.id} className="flex justify-between items-center p-3 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[var(--border-color)]">
                   <div className="flex items-center gap-3">
                     <Clock size={18} className="text-warning" />
                     <div className="flex flex-col">
@@ -191,7 +191,7 @@ export function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-48 text-muted flex-col bg-slate-50 dark:bg-slate-800/30 rounded-xl">
+            <div className="flex items-center justify-center h-48 text-muted flex-col bg-[rgba(255,255,255,0.02)] border border-[var(--border-color)] rounded-xl">
               <AlertCircle size={32} className="mb-3 opacity-40" />
               <p className="text-sm font-medium">Tudo em dia.</p>
               <p className="text-xs mt-1 text-center">Nenhum compromisso financeiro pendente listado.</p>
