@@ -19,6 +19,7 @@ export function TransactionModal() {
   const [toAccountId, setToAccountId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<Transaction['paymentMethod']>('pix');
   const [status, setStatus] = useState<Transaction['status']>('completed');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isTransactionModalOpen) {
@@ -53,11 +54,14 @@ export function TransactionModal() {
     type === 'transferencia' ? c.type === 'transferencia' : (c.type === type || c.type === 'ambos')
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!amount || !description || !accountId) return;
     if (type !== 'transferencia' && !categoryId) return;
     if (type === 'transferencia' && !toAccountId) return;
+    
+    setIsSubmitting(true);
 
     // Se for transferência e não escolheu categoria específica (pois transfer pode não ter cat obrigatoria na UI visual)
     const finalCategoryId = type === 'transferencia' && !categoryId 
@@ -76,13 +80,16 @@ export function TransactionModal() {
       status
     };
 
-    if (transactionToEdit) {
-      updateTransaction(transactionToEdit.id, transactionData);
-    } else {
-      addTransaction(transactionData);
+    try {
+      if (transactionToEdit) {
+        await updateTransaction(transactionToEdit.id, transactionData);
+      } else {
+        await addTransaction(transactionData);
+      }
+      closeTransactionModal();
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    closeTransactionModal();
   };
 
   return (
@@ -246,8 +253,12 @@ export function TransactionModal() {
             <button type="button" className="btn btn-secondary" onClick={closeTransactionModal}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary" style={{ width: '150px' }}>
-              Salvar
+            <button type="submit" className="btn btn-primary flex justify-center items-center" style={{ width: '150px' }} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-[var(--bg-color)] border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                'Salvar'
+              )}
             </button>
           </div>
         </form>
