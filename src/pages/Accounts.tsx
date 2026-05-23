@@ -55,9 +55,9 @@ export function Accounts() {
         </button>
       </div>
 
-      <div className="card mb-6" style={{ background: 'linear-gradient(135deg, var(--primary-color), var(--primary-hover))', color: 'white', borderColor: 'transparent' }}>
-        <h3 style={{ fontSize: '1rem', opacity: 0.9, fontWeight: 500 }}>Saldo Consolidado</h3>
-        <div className="text-3xl font-bold mt-2">{formatCurrency(totalBalance)}</div>
+      <div className="card mb-6">
+        <h3 className="text-secondary" style={{ fontSize: '1rem', fontWeight: 500 }}>Saldo Consolidado</h3>
+        <div className="text-3xl font-bold mt-2 text-primary">{formatCurrency(totalBalance)}</div>
       </div>
 
       {isAdding && (
