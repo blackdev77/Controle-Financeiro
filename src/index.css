@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Vercel / Linear Aesthetic - Pure Dark Focus */
+    --bg-color: #000000;
+    --surface-color: #0A0A0A;
+    --surface-hover: #141414;
+    --border-color: rgba(255, 255, 255, 0.1);
+    
+    --text-primary: #EDEDED;
+    --text-secondary: #A1A1AA;
+    --text-muted: #52525B;
+    
+    --primary-color: #EDEDED;      /* Branco para botões primários */
+    --primary-hover: #FFFFFF;      
+    
+    /* Cores Financeiras Sóbrias (Menos saturação, mais controle) */
+    --success-color: #34D399; /* Emerald 400 */
+    --danger-color: #F87171;  /* Red 400 */
+    --warning-color: #FBBF24; /* Amber 400 */
+    
+    /* Sombras precisas */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.8);
+    
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    /* Glass é agora um "Matte Surface" fosco */
+    --glass-bg: rgba(10, 10, 10, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.05);
+  }
+
+  body {
+    @apply bg-[var(--bg-color)] text-[var(--text-primary)] antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    letter-spacing: -0.015em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    @apply font-medium tracking-tight;
+    letter-spacing: -0.03em;
+  }
+}
+
+@layer components {
+  /* Matte Cards */
+  .card {
+    @apply bg-[var(--surface-color)] rounded-[var(--radius-lg)] p-6 transition-all duration-300;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+  
+  .card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Fosco limpo sem o desfoque exagerado */
+  .glass-panel {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-right: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  /* Typography */
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted { color: var(--text-muted); }
+  .text-primary { color: var(--primary-color); }
+  .text-success { color: var(--success-color); }
+  .text-danger { color: var(--danger-color); }
+  .text-warning { color: var(--warning-color); }
+
+  /* Premium Buttons: White in Dark Mode */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)] font-medium transition-all duration-200 text-sm;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+  }
+  
+  .btn:active {
+    transform: scale(0.98);
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: #000000;
+    border: 1px solid transparent;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+  }
+  
+  .btn-secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-danger {
+    background-color: transparent;
+    color: var(--danger-color);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+  }
+  .btn-danger:hover {
+    background-color: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.5);
+  }
+
+  /* Inputs Minimalistas */
+  .form-control {
+    @apply w-full rounded-[var(--radius-md)] px-4 py-3 bg-[#050505] border border-[var(--border-color)] text-[var(--text-primary)] transition-all duration-200;
+    font-family: 'Inter', sans-serif;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  .form-control:focus {
+    @apply outline-none;
+    border-color: rgba(255, 255, 255, 0.3);
+    background-color: #0A0A0A;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-[var(--text-secondary)] mb-2;
+  }
+  
+  .form-group {
+    @apply mb-5;
+  }
+
+  /* Tabelas Sóbrias (Sem bordas laterais, apenas linhas horizontais finas) */
+  .table-container {
+    @apply w-full overflow-x-auto;
+  }
+  
+  table {
+    @apply w-full text-left border-collapse;
+  }
+  
+  th {
+    @apply px-4 py-4 text-xs font-medium text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)];
+    letter-spacing: 0.05em;
+  }
+  
+  td {
+    @apply px-4 py-4 border-b border-[var(--border-color)] text-sm;
+    transition: background-color 0.2s ease;
+  }
+  
+  tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Badges Ultra-Clean (Sem fundo pesado, apenas ponto de cor) */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-0 py-1 text-sm font-medium;
+  }
+  
+  .badge::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .badge-success {
+    color: var(--text-primary);
+  }
+  .badge-success::before {
+    background-color: var(--success-color);
+    box-shadow: 0 0 8px var(--success-color);
+  }
+
+  .badge-danger {
+    color: var(--text-primary);
+  }
+  .badge-danger::before {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 8px var(--danger-color);
+  }
+
+  .badge-warning {
+    color: var(--text-primary);
+  }
+  .badge-warning::before {
+    background-color: var(--warning-color);
+    box-shadow: 0 0 8px var(--warning-color);
+  }
+
+  /* Modal Linear-style */
+  .modal-overlay {
+    @apply fixed inset-0 flex items-center justify-center p-4;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    z-index: 50;
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .modal-content {
+    @apply bg-[#0A0A0A] w-full max-w-md max-h-[90vh] overflow-y-auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-color);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .modal-header {
+    @apply flex justify-between items-center p-6 border-b border-[var(--border-color)];
+  }
+  
+  .modal-body {
+    @apply p-6;
+  }
+  
+  .modal-footer {
+    @apply flex justify-end gap-3 p-6 border-t border-[var(--border-color)];
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  .content-scroll {
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    padding-bottom: 2rem;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Custom Scrollbar - Super discreet */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
