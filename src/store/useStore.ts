@@ -76,12 +76,19 @@ export const useStore = create<AppState>((set) => ({
       if (catRes.error) throw catRes.error;
       if (txRes.error) throw txRes.error;
 
-      // Se é o primeiro login e não tem conta nem categoria, poderíamos criar as default
-      // Por enquanto vamos apenas setar o estado
+      // Mapper to keep compatibility with UI components expecting camelCase
+      const mappedTransactions = (txRes.data || []).map(t => ({
+        ...t,
+        accountId: t.account_id,
+        categoryId: t.category_id,
+        toAccountId: t.to_account_id,
+        paymentMethod: t.payment_method
+      }));
+
       set({ 
         accounts: accRes.data || [],
         categories: catRes.data || [],
-        transactions: txRes.data || [],
+        transactions: mappedTransactions,
         initialized: true,
         loading: false
       });
@@ -126,7 +133,14 @@ export const useStore = create<AppState>((set) => ({
 
     if (data) {
       set(state => {
-        const newTx = data as Transaction;
+        const rawTx = data as any;
+        const newTx = {
+          ...rawTx,
+          accountId: rawTx.account_id,
+          categoryId: rawTx.category_id,
+          toAccountId: rawTx.to_account_id,
+          paymentMethod: rawTx.payment_method
+        } as Transaction;
         
         // Atualiza saldo das contas localmente (Otimista)
         let updatedAccounts = [...state.accounts];
@@ -165,8 +179,16 @@ export const useStore = create<AppState>((set) => ({
       .single();
 
     if (!error && data) {
+      const rawTx = data as any;
+      const mappedTx = {
+        ...rawTx,
+        accountId: rawTx.account_id,
+        categoryId: rawTx.category_id,
+        toAccountId: rawTx.to_account_id,
+        paymentMethod: rawTx.payment_method
+      } as Transaction;
       set(state => ({
-        transactions: state.transactions.map(t => t.id === id ? { ...t, ...(data as Transaction) } : t)
+        transactions: state.transactions.map(t => t.id === id ? { ...t, ...mappedTx } : t)
       }));
     }
   },
