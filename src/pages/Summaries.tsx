@@ -9,7 +9,6 @@ export function Summaries() {
   
   // Custom month selector state
   const [currentDate, setCurrentDate] = useState(new Date());
-  const selectedMonthStr = format(currentDate, 'yyyy-MM');
 
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');

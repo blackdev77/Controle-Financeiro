@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Tag } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import type { Category } from '../types';
 
 const DEFAULT_COLORS = ['#34D399', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#eab308', '#ef4444'];
 
