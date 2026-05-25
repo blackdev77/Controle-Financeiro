@@ -24,7 +24,16 @@ export function Dashboard() {
   const today = new Date();
   
   // Nível 1: Visão Geral Rápida
-  const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const getCalculatedBalance = (acc: any) => {
+    const accTransactions = transactions.filter(t => t.accountId === acc.id && t.status === 'completed');
+    const receitas = accTransactions.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.amount, 0);
+    const despesas = accTransactions.filter(t => t.type === 'despesa').reduce((sum, t) => sum + t.amount, 0);
+    const transSaida = accTransactions.filter(t => t.type === 'transferencia').reduce((sum, t) => sum + t.amount, 0);
+    const transEntrada = transactions.filter(t => t.type === 'transferencia' && t.toAccountId === acc.id && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
+    return acc.balance + receitas + transEntrada - despesas - transSaida;
+  };
+
+  const totalBalance = accounts.reduce((acc, curr) => acc + getCalculatedBalance(curr), 0);
   
   const currentMonthTransactions = transactions.filter(t => 
     isSameMonth(new Date(t.date), today) && t.type !== 'transferencia'

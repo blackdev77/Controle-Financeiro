@@ -26,7 +26,12 @@ interface AppState {
   deleteTransaction: (id: string) => Promise<void>;
   
   addCategory: (c: Omit<Category, 'id' | 'tenantId'>) => Promise<void>;
+  updateCategory: (id: string, c: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+
   addAccount: (a: Omit<Account, 'id' | 'tenantId'>) => Promise<void>;
+  updateAccount: (id: string, a: Partial<Account>) => Promise<void>;
+  deleteAccount: (id: string) => Promise<void>;
   
   updateSettings: (s: Partial<UserSettings>) => void;
   updateGoals: (g: Partial<Goals>) => void;
@@ -37,8 +42,19 @@ interface AppState {
   openTransactionModal: (tx?: Transaction) => void;
   closeTransactionModal: () => void;
 
+  isAccountModalOpen: boolean;
+  accountToEdit: Account | null;
+  openAccountModal: (acc?: Account) => void;
+  closeAccountModal: () => void;
+
+  isCategoryModalOpen: boolean;
+  categoryToEdit: Category | null;
+  openCategoryModal: (cat?: Category) => void;
+  closeCategoryModal: () => void;
+
   transactionFilters: {
-    month: string;
+    startDate: string;
+    endDate: string;
     type: string;
     category: string;
     search: string;
@@ -57,7 +73,11 @@ export const useStore = create<AppState>((set) => ({
 
   isTransactionModalOpen: false,
   transactionToEdit: null,
-  transactionFilters: { month: '', type: '', category: '', search: '' },
+  isAccountModalOpen: false,
+  accountToEdit: null,
+  isCategoryModalOpen: false,
+  categoryToEdit: null,
+  transactionFilters: { startDate: '', endDate: '', type: '', category: '', search: '' },
 
   fetchData: async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -105,6 +125,12 @@ export const useStore = create<AppState>((set) => ({
   openTransactionModal: (tx) => set({ isTransactionModalOpen: true, transactionToEdit: tx || null }),
   closeTransactionModal: () => set({ isTransactionModalOpen: false, transactionToEdit: null }),
 
+  openAccountModal: (acc) => set({ isAccountModalOpen: true, accountToEdit: acc || null }),
+  closeAccountModal: () => set({ isAccountModalOpen: false, accountToEdit: null }),
+
+  openCategoryModal: (cat) => set({ isCategoryModalOpen: true, categoryToEdit: cat || null }),
+  closeCategoryModal: () => set({ isCategoryModalOpen: false, categoryToEdit: null }),
+
   addTransaction: async (t) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
@@ -141,26 +167,8 @@ export const useStore = create<AppState>((set) => ({
           toAccountId: rawTx.to_account_id,
           paymentMethod: rawTx.payment_method
         } as Transaction;
-        
-        // Atualiza saldo das contas localmente (Otimista)
-        let updatedAccounts = [...state.accounts];
-        if (newTx.status === 'completed') {
-          updatedAccounts = updatedAccounts.map(acc => {
-            if (acc.id === newTx.accountId) {
-              if (newTx.type === 'receita') return { ...acc, balance: acc.balance + newTx.amount };
-              if (newTx.type === 'despesa') return { ...acc, balance: acc.balance - newTx.amount };
-              if (newTx.type === 'transferencia') return { ...acc, balance: acc.balance - newTx.amount };
-            }
-            if (newTx.type === 'transferencia' && acc.id === newTx.toAccountId) {
-              return { ...acc, balance: acc.balance + newTx.amount };
-            }
-            return acc;
-          });
-        }
-
         return { 
-          transactions: [newTx, ...state.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-          accounts: updatedAccounts
+          transactions: [newTx, ...state.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         };
       });
       
@@ -218,6 +226,20 @@ export const useStore = create<AppState>((set) => ({
     }
   },
 
+  updateCategory: async (id, updates) => {
+    const { data, error } = await supabase.from('categories').update(updates).eq('id', id).select().single();
+    if (!error && data) {
+      set(state => ({ categories: state.categories.map(c => c.id === id ? { ...c, ...data as Category } : c) }));
+    }
+  },
+
+  deleteCategory: async (id) => {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (!error) {
+      set(state => ({ categories: state.categories.filter(c => c.id !== id) }));
+    }
+  },
+
   addAccount: async (a) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
@@ -231,6 +253,20 @@ export const useStore = create<AppState>((set) => ({
 
     if (!error && data) {
       set(state => ({ accounts: [...state.accounts, data as Account] }));
+    }
+  },
+
+  updateAccount: async (id, updates) => {
+    const { data, error } = await supabase.from('accounts').update(updates).eq('id', id).select().single();
+    if (!error && data) {
+      set(state => ({ accounts: state.accounts.map(acc => acc.id === id ? { ...acc, ...data as Account } : acc) }));
+    }
+  },
+
+  deleteAccount: async (id) => {
+    const { error } = await supabase.from('accounts').delete().eq('id', id);
+    if (!error) {
+      set(state => ({ accounts: state.accounts.filter(acc => acc.id !== id) }));
     }
   },
 

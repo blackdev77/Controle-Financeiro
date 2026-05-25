@@ -1,14 +1,23 @@
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Edit2, Trash2, Search, Filter, Plus, Download } from 'lucide-react';
+import { Edit2, Trash2, Search, Filter, Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import type { Transaction } from '../types';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export function Transactions() {
   const { transactions, categories, accounts, deleteTransaction, openTransactionModal, transactionFilters, setTransactionFilters } = useStore();
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este lançamento?')) {
-      deleteTransaction(id);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const handleDelete = () => {
+    if (transactionToDelete) {
+      deleteTransaction(transactionToDelete.id);
+      setTransactionToDelete(null);
     }
   };
 
@@ -21,15 +30,28 @@ export function Transactions() {
   };
 
   const filteredTransactions = transactions.filter(t => {
-    if (transactionFilters.month) {
-      const tMonth = t.date.substring(0, 7); // yyyy-MM
-      if (tMonth !== transactionFilters.month) return false;
+    if (transactionFilters.startDate) {
+      if (t.date.substring(0, 10) < transactionFilters.startDate) return false;
+    }
+    if (transactionFilters.endDate) {
+      if (t.date.substring(0, 10) > transactionFilters.endDate) return false;
     }
     if (transactionFilters.type && t.type !== transactionFilters.type) return false;
     if (transactionFilters.category && t.categoryId !== transactionFilters.category) return false;
     if (transactionFilters.search && !t.description.toLowerCase().includes(transactionFilters.search.toLowerCase())) return false;
     return true;
   });
+
+  // Reseta paginação ao filtrar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [transactionFilters]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Desconhecida';
   const getCategoryColor = (id: string) => categories.find(c => c.id === id)?.color || '#94a3b8';
@@ -40,6 +62,12 @@ export function Transactions() {
   };
 
   const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) {
+      setToastMessage('Nenhum lançamento para exportar no período selecionado');
+      setTimeout(() => setToastMessage(''), 3000);
+      return;
+    }
+
     const headers = ['Data', 'Descricao', 'Categoria', 'Conta', 'Tipo', 'FormaPgto', 'Status', 'Valor'];
     const rows = filteredTransactions.map(t => [
       t.date.split('T')[0],
@@ -62,10 +90,20 @@ export function Transactions() {
     document.body.appendChild(link);
     link.click();
     link.remove();
+
+    setToastMessage('✅ Arquivo exportado com sucesso!');
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
   return (
     <div>
+      {/* Toast de Feedback */}
+      {toastMessage && (
+        <div className="fixed top-20 right-8 bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] px-4 py-3 rounded-lg shadow-lg z-50 animate-fade-in flex items-center">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 style={{ marginBottom: 0 }}>Lançamentos</h1>
@@ -76,38 +114,47 @@ export function Transactions() {
         </button>
       </div>
 
-      <div className="card mb-6 flex flex-col md:flex-col lg:flex-row gap-4">
+      <div className="card mb-6 flex flex-col lg:flex-row flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
           <Filter size={20} className="text-secondary" />
           <span className="font-medium text-secondary">Filtros:</span>
         </div>
         
-        <div className="form-group flex-1 m-0">
-          <div className="flex items-center gap-2 border border-border-color rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 focus-within:border-primary-color transition-colors">
+        <div className="form-group flex-1 min-w-[200px] m-0">
+          <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-lg px-3 py-[6px] bg-transparent focus-within:border-[var(--primary-color)] transition-colors h-10">
             <Search size={18} className="text-muted" />
             <input 
               type="text" 
               className="bg-transparent border-none outline-none w-full text-sm"
               placeholder="Buscar lançamento..."
-              value={transactionFilters.search}
+              value={transactionFilters.search || ''}
               onChange={(e) => setTransactionFilters({ search: e.target.value })}
             />
           </div>
         </div>
 
-        <input 
-          type="month" 
-          className="form-control" 
-          value={transactionFilters.month}
-          onChange={(e) => setTransactionFilters({ month: e.target.value })}
-          style={{ maxWidth: 180 }}
-        />
+        <div className="flex items-center gap-2 h-10 border border-[var(--border-color)] rounded-lg px-2 bg-transparent">
+          <span className="text-xs text-secondary ml-2">De:</span>
+          <input 
+            type="date" 
+            className="bg-transparent border-none outline-none text-sm text-[var(--text-primary)]" 
+            value={transactionFilters.startDate || ''}
+            onChange={(e) => setTransactionFilters({ startDate: e.target.value })}
+          />
+          <span className="text-xs text-secondary ml-2">Até:</span>
+          <input 
+            type="date" 
+            className="bg-transparent border-none outline-none text-sm text-[var(--text-primary)]" 
+            value={transactionFilters.endDate || ''}
+            onChange={(e) => setTransactionFilters({ endDate: e.target.value })}
+          />
+        </div>
 
         <select 
           className="form-control" 
-          value={transactionFilters.type}
+          value={transactionFilters.type || ''}
           onChange={(e) => setTransactionFilters({ type: e.target.value })}
-          style={{ maxWidth: 160 }}
+          style={{ width: '150px', height: '40px', padding: '0 10px' }}
         >
           <option value="">Todos os tipos</option>
           <option value="receita">Receitas</option>
@@ -117,9 +164,9 @@ export function Transactions() {
 
         <select 
           className="form-control" 
-          value={transactionFilters.category}
+          value={transactionFilters.category || ''}
           onChange={(e) => setTransactionFilters({ category: e.target.value })}
-          style={{ maxWidth: 200 }}
+          style={{ width: '170px', height: '40px', padding: '0 10px' }}
         >
           <option value="">Todas as categorias</option>
           {categories.map(c => (
@@ -131,8 +178,9 @@ export function Transactions() {
           className="btn btn-secondary ml-auto flex items-center gap-2"
           onClick={handleExportCSV}
           title="Exportar Lançamentos (CSV)"
+          style={{ height: '40px' }}
         >
-          <Download size={16} /> Exportar CSV
+          <Download size={16} /> CSV
         </button>
       </div>
 
@@ -151,7 +199,7 @@ export function Transactions() {
             </tr>
           </thead>
           <tbody>
-            {filteredTransactions.map(t => (
+            {paginatedTransactions.map(t => (
               <tr key={t.id}>
                 <td>{format(parseISO(t.date), 'dd/MM/yyyy')}</td>
                 <td>
@@ -193,7 +241,7 @@ export function Transactions() {
                     <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleEdit(t)}>
                       <Edit2 size={16} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleDelete(t.id)}>
+                    <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => setTransactionToDelete(t)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -213,8 +261,45 @@ export function Transactions() {
             )}
           </tbody>
         </table>
+        
+        {/* Paginação */}
+        {filteredTransactions.length > 0 && (
+          <div className="flex justify-between items-center mt-6 pt-4 border-t border-[var(--border-color)]">
+            <div className="text-sm text-secondary">
+              Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, filteredTransactions.length)} a {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} de {filteredTransactions.length} resultados
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '0.25rem 0.5rem' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="text-sm font-medium px-2">
+                {currentPage} / {totalPages}
+              </span>
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '0.25rem 0.5rem' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
+      <ConfirmModal 
+        isOpen={!!transactionToDelete}
+        title="Excluir Lançamento"
+        message={`Deseja excluir o lançamento "${transactionToDelete?.description}" de ${transactionToDelete ? formatCurrency(transactionToDelete.amount) : ''}? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+        onCancel={() => setTransactionToDelete(null)}
+      />
     </div>
   );
 }

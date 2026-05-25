@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ArrowRightLeft, 
@@ -22,13 +22,30 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const openTransactionModal = useStore(state => state.openTransactionModal);
+  const openAccountModal = useStore(state => state.openAccountModal);
+  const openCategoryModal = useStore(state => state.openCategoryModal);
   const settings = useStore(state => state.settings);
   const fetchData = useStore(state => state.fetchData);
   const initialized = useStore(state => state.initialized);
   const loading = useStore(state => state.loading);
   const { user, signOut } = useAuth();
   
+  const location = useLocation();
   const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuário';
+
+  const handleFabClick = () => {
+    if (location.pathname === '/accounts') {
+      openAccountModal();
+    } else if (location.pathname === '/categories') {
+      openCategoryModal();
+    } else if (location.pathname === '/summaries') {
+      document.dispatchEvent(new CustomEvent('openBudgetModal'));
+    } else {
+      openTransactionModal();
+    }
+  };
+
+  const showFab = !['/reports', '/settings'].includes(location.pathname);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
@@ -62,25 +79,24 @@ export function Layout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#050505] border-r border-[var(--border-color)] transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="sidebar-header">
-          <Wallet className="text-primary" size={28} />
-          <h2 className="m-0" style={{ marginBottom: 0, fontSize: '1.25rem' }}>FinControl</h2>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#050505] border-r border-[var(--border-color)] transform transition-transform duration-300 ease-in-out flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="flex items-center p-6 border-b border-[var(--border-color)]">
+          <Wallet className="text-primary mr-3" size={28} />
+          <h2 className="m-0 text-xl font-medium tracking-tight">FinControl</h2>
           <button 
-            className="md:hidden" 
-            style={{ marginLeft: 'auto' }}
+            className="md:hidden ml-auto" 
             onClick={() => setSidebarOpen(false)}
           >
             <X size={20} className="text-secondary" />
           </button>
         </div>
         
-        <nav className="sidebar-nav">
+        <nav className="flex flex-col gap-1 p-4 flex-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink 
               key={item.to} 
               to={item.to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-[rgba(255,255,255,0.05)] text-primary font-medium' : 'text-secondary hover:bg-[rgba(255,255,255,0.02)] hover:text-primary'}`}
               onClick={() => setSidebarOpen(false)}
             >
               <item.icon size={20} />
@@ -136,26 +152,28 @@ export function Layout() {
         </div>
         
         {/* Global FAB */}
-        <button 
-          className="btn btn-primary" 
-          style={{
-            position: 'fixed',
-            bottom: '2rem',
-            right: '2rem',
-            width: '3.5rem',
-            height: '3.5rem',
-            borderRadius: '50%',
-            boxShadow: 'var(--shadow-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            zIndex: 40
-          }}
-          onClick={() => openTransactionModal()}
-        >
-          <Plus size={28} />
-        </button>
+        {showFab && (
+          <button 
+            className="btn btn-primary" 
+            style={{
+              position: 'fixed',
+              bottom: '2rem',
+              right: '2rem',
+              width: '3.5rem',
+              height: '3.5rem',
+              borderRadius: '50%',
+              boxShadow: 'var(--shadow-lg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              zIndex: 40
+            }}
+            onClick={handleFabClick}
+          >
+            <Plus size={28} />
+          </button>
+        )}
 
         <TransactionModal />
       </main>

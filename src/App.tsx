@@ -11,6 +11,7 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { NotFound } from './pages/NotFound';
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,6 +39,17 @@ function App() {
               <Route path="/summaries" element={<Summaries />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              
+              {/* Aliases em Português */}
+              <Route path="/lancamentos" element={<Navigate to="/transactions" replace />} />
+              <Route path="/contas" element={<Navigate to="/accounts" replace />} />
+              <Route path="/categorias" element={<Navigate to="/categories" replace />} />
+              <Route path="/resumos" element={<Navigate to="/summaries" replace />} />
+              <Route path="/relatorios" element={<Navigate to="/reports" replace />} />
+              <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
+
+              {/* 404 - Not Found */}
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
         </Routes>

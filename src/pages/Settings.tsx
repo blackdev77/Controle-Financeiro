@@ -1,23 +1,44 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import { useAuth } from '../contexts/AuthContext';
 import type { UserSettings, Goals } from '../types';
 import { Download, Upload } from 'lucide-react';
 
 export function Settings() {
   const { settings, goals, categories, updateSettings, updateGoals } = useStore();
+  const { user } = useAuth();
+  
   const [activeTab, setActiveTab] = useState<'geral' | 'metas' | 'dados'>('geral');
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [localSettings, setLocalSettings] = useState<UserSettings>({
+    ...settings,
+    name: settings.name || user?.user_metadata?.name || user?.email || ''
+  });
+  const [localGoals, setLocalGoals] = useState<Goals>(goals);
+
+  // Update local state if global state changes externally
+  useEffect(() => {
+    setLocalSettings(prev => ({ ...prev, ...settings, name: settings.name || prev.name }));
+  }, [settings]);
+
+  useEffect(() => {
+    setLocalGoals(goals);
+  }, [goals]);
+
+  const isDirty = JSON.stringify({ ...localSettings, name: localSettings.name }) !== JSON.stringify({ ...settings, name: settings.name || localSettings.name }) || 
+                  JSON.stringify(localGoals) !== JSON.stringify(goals);
+
   const handleSettingsChange = (key: keyof UserSettings, value: any) => {
-    updateSettings({ [key]: value });
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
     if (key === 'theme') {
       document.documentElement.setAttribute('data-theme', value);
     }
   };
 
   const handleGoalsChange = (key: keyof Goals, value: any) => {
-    updateGoals({ [key]: value });
+    setLocalGoals(prev => ({ ...prev, [key]: value }));
   };
 
   const handleExport = () => {
@@ -52,6 +73,8 @@ export function Settings() {
   };
 
   const saveSettings = () => {
+    updateSettings(localSettings);
+    updateGoals(localGoals);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -86,24 +109,25 @@ export function Settings() {
         {/* Content */}
         <div className="flex-1 p-6 lg:p-8">
           {activeTab === 'geral' && (
-            <div className="space-y-6 animate-fade-in max-w-xl">
+            <div className="space-y-6 animate-fade-in w-full max-w-2xl">
               <h2 className="text-xl mb-4 tracking-tight">Configurações Gerais</h2>
               
-              <div className="form-group">
+              <div className="form-group w-full">
                 <label className="form-label">Nome de Exibição</label>
                 <input 
                   type="text" 
-                  className="form-control" 
-                  value={settings.name}
+                  className="form-control w-full max-w-full" 
+                  value={localSettings.name}
                   onChange={(e) => handleSettingsChange('name', e.target.value)}
+                  style={{ width: '100%', minWidth: '100%' }}
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group max-w-md">
                 <label className="form-label">Moeda Padrão</label>
                 <select 
                   className="form-control"
-                  value={settings.currency}
+                  value={localSettings.currency}
                   onChange={(e) => handleSettingsChange('currency', e.target.value)}
                 >
                   <option value="BRL">Real (R$)</option>
@@ -112,11 +136,11 @@ export function Settings() {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="form-group max-w-md">
                 <label className="form-label">Tema</label>
                 <select 
                   className="form-control"
-                  value={settings.theme}
+                  value={localSettings.theme}
                   onChange={(e) => handleSettingsChange('theme', e.target.value)}
                 >
                   <option value="light">Claro</option>
@@ -127,7 +151,7 @@ export function Settings() {
           )}
 
           {activeTab === 'metas' && (
-            <div className="space-y-6 animate-fade-in max-w-xl">
+            <div className="space-y-6 animate-fade-in w-full max-w-2xl">
               <h2 className="text-xl mb-4 tracking-tight">Metas de Economia</h2>
               
               <div className="form-group">
@@ -135,9 +159,9 @@ export function Settings() {
                 <p className="text-sm text-secondary mb-2">Qual porcentagem da sua receita você deseja guardar/investir por mês?</p>
                 <input 
                   type="number" 
-                  className="form-control" 
+                  className="form-control max-w-[200px]" 
                   min="0" max="100"
-                  value={goals.monthlyEconomyPercent}
+                  value={localGoals.monthlyEconomyPercent}
                   onChange={(e) => handleGoalsChange('monthlyEconomyPercent', Number(e.target.value))}
                 />
               </div>
@@ -156,12 +180,12 @@ export function Settings() {
                       <span className="text-secondary text-sm">R$</span>
                       <input 
                         type="number" 
-                        className="form-control !py-1 !px-2 w-24 text-right" 
+                        className="form-control !py-1 !px-2 w-28 text-right" 
                         placeholder="Sem limite"
-                        value={goals.categoryLimits[cat.id] || ''}
+                        value={localGoals.categoryLimits[cat.id] || ''}
                         onChange={(e) => {
                           const val = e.target.value ? Number(e.target.value) : undefined;
-                          const newLimits = { ...goals.categoryLimits };
+                          const newLimits = { ...localGoals.categoryLimits };
                           if (val === undefined) {
                             delete newLimits[cat.id];
                           } else {
@@ -178,7 +202,7 @@ export function Settings() {
           )}
 
           {activeTab === 'dados' && (
-            <div className="space-y-6 animate-fade-in max-w-xl">
+            <div className="space-y-6 animate-fade-in w-full max-w-2xl">
               <h2 className="text-xl mb-4 tracking-tight">Gerenciamento de Dados</h2>
               <p className="text-secondary mb-6">Como seus dados agora são salvos na nuvem (Supabase), o backup físico é opcional.</p>
               
@@ -201,9 +225,15 @@ export function Settings() {
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-border-color flex items-center justify-end gap-4">
-            {saved && <span className="text-success text-sm font-medium animate-fade-in">Configurações salvas!</span>}
-            <button className="btn btn-primary" onClick={saveSettings}>Salvar Alterações</button>
+          <div className="mt-8 pt-6 border-t border-[var(--border-color)] flex items-center justify-end gap-4">
+            {saved && <span className="text-[var(--success-color)] text-sm font-medium animate-fade-in">Configurações salvas!</span>}
+            <button 
+              className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={saveSettings}
+              disabled={!isDirty}
+            >
+              Salvar Alterações
+            </button>
           </div>
         </div>
       </div>

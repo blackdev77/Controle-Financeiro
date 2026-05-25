@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Plus, Wallet, Building2, CreditCard, DollarSign } from 'lucide-react';
+import { Plus, Wallet, Building2, CreditCard, DollarSign, Pencil, Trash2 } from 'lucide-react';
 import type { Account } from '../types';
+import { AccountModal } from '../components/AccountModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export function Accounts() {
-  const { accounts, addAccount } = useStore();
-  const [isAdding, setIsAdding] = useState(false);
+  const { accounts, transactions, openAccountModal, deleteAccount } = useStore();
   
-  const [name, setName] = useState('');
-  const [type, setType] = useState<Account['type']>('checking');
-  const [initialBalance, setInitialBalance] = useState('');
-  const [color, setColor] = useState('#3b82f6');
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -25,23 +23,29 @@ export function Accounts() {
     }
   };
 
-  const handleAddAccount = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) return;
+  const getCalculatedBalance = (acc: Account) => {
+    const accTransactions = transactions.filter(t => t.accountId === acc.id && t.status === 'completed');
+    const receitas = accTransactions.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.amount, 0);
+    const despesas = accTransactions.filter(t => t.type === 'despesa').reduce((sum, t) => sum + t.amount, 0);
+    const transSaida = accTransactions.filter(t => t.type === 'transferencia').reduce((sum, t) => sum + t.amount, 0);
+    const transEntrada = transactions.filter(t => t.type === 'transferencia' && t.toAccountId === acc.id && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
     
-    addAccount({
-      name,
-      type,
-      balance: parseFloat(initialBalance) || 0,
-      color
-    });
-    
-    setName('');
-    setInitialBalance('');
-    setIsAdding(false);
+    return acc.balance + receitas + transEntrada - despesas - transSaida;
   };
 
-  const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const accountsWithBalance = accounts.map(acc => ({
+    ...acc,
+    calculatedBalance: getCalculatedBalance(acc)
+  }));
+
+  const totalBalance = accountsWithBalance.reduce((acc, curr) => acc + curr.calculatedBalance, 0);
+
+  const handleDelete = async () => {
+    if (accountToDelete) {
+      await deleteAccount(accountToDelete.id);
+      setAccountToDelete(null);
+    }
+  };
 
   return (
     <div>
@@ -50,8 +54,8 @@ export function Accounts() {
           <h1 className="tracking-tight" style={{ marginBottom: 0 }}>Contas</h1>
           <p className="text-secondary tracking-tight">Gerencie suas carteiras e contas bancárias</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
-          <Plus size={18} /> Nova Conta
+        <button className="btn btn-primary md:hidden" onClick={() => openAccountModal()}>
+          <Plus size={18} /> Nova
         </button>
       </div>
 
@@ -60,75 +64,9 @@ export function Accounts() {
         <div className="text-3xl font-bold mt-2 text-primary">{formatCurrency(totalBalance)}</div>
       </div>
 
-      {isAdding && (
-        <div className="card mb-6 animate-fade-in border-l-4" style={{ borderLeftColor: 'var(--primary-color)' }}>
-          <h3 className="mb-4 text-primary">Nova Conta</h3>
-          <form onSubmit={handleAddAccount} className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="form-group flex-1 m-0">
-              <label className="form-label">Nome da Conta</label>
-              <input 
-                type="text" 
-                className="form-control"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="Ex: Nubank, Itaú..."
-              />
-            </div>
-            
-            <div className="form-group m-0" style={{ minWidth: 150 }}>
-              <label className="form-label">Tipo</label>
-              <select 
-                className="form-control"
-                value={type}
-                onChange={(e) => setType(e.target.value as Account['type'])}
-              >
-                <option value="checking">Conta Corrente</option>
-                <option value="savings">Poupança</option>
-                <option value="credit_card">Cartão de Crédito</option>
-                <option value="cash">Dinheiro em espécie</option>
-                <option value="investment">Investimento</option>
-              </select>
-            </div>
-
-            <div className="form-group m-0" style={{ minWidth: 150 }}>
-              <label className="form-label">Saldo Inicial</label>
-              <input 
-                type="number" 
-                step="0.01"
-                className="form-control"
-                value={initialBalance}
-                onChange={(e) => setInitialBalance(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="form-group m-0">
-              <label className="form-label">Cor</label>
-              <input 
-                type="color" 
-                className="form-control"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                style={{ width: 60, padding: '0.2rem' }}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button type="button" className="btn btn-secondary" onClick={() => setIsAdding(false)}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Salvar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-4 md:grid-cols-1 lg:grid-cols-2">
-        {accounts.map(acc => (
-          <div key={acc.id} className="card flex items-center justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {accountsWithBalance.map(acc => (
+          <div key={acc.id} className="card flex items-center justify-between group relative hover:border-[rgba(255,255,255,0.15)] transition-colors">
             <div className="flex items-center gap-4">
               <div 
                 style={{ 
@@ -145,15 +83,41 @@ export function Accounts() {
               </div>
               <div>
                 <h3 className="m-0" style={{ fontSize: '1rem', marginBottom: 0 }}>{acc.name}</h3>
-                <div className={`font-bold mt-1 ${acc.balance >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {formatCurrency(acc.balance)}
+                <div className={`font-bold mt-1 ${acc.calculatedBalance >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {formatCurrency(acc.calculatedBalance)}
                 </div>
               </div>
             </div>
-            {/* Omitido Edit/Delete para simplificar MVP */}
+            
+            {/* Ações Hover */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
+              <button 
+                className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-primary"
+                onClick={() => openAccountModal(acc)}
+                title="Editar conta"
+              >
+                <Pencil size={16} />
+              </button>
+              <button 
+                className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(248,113,113,0.1)] text-danger"
+                onClick={() => setAccountToDelete(acc)}
+                title="Excluir conta"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      <AccountModal />
+      <ConfirmModal 
+        isOpen={!!accountToDelete}
+        title="Excluir Conta"
+        message={`Tem certeza que deseja excluir a conta "${accountToDelete?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+        onCancel={() => setAccountToDelete(null)}
+      />
     </div>
   );
 }

@@ -1,32 +1,29 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import type { Category } from '../types';
-import { Plus, Tag } from 'lucide-react';
+import { Plus, Tag, Pencil, Trash2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import { CategoryModal } from '../components/CategoryModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export function Categories() {
-  const { categories, addCategory } = useStore();
+  const { categories, transactions, openCategoryModal, deleteCategory } = useStore();
 
-  const [isAdding, setIsAdding] = useState(false);
-  
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatType, setNewCatType] = useState<'receita' | 'despesa' | 'ambos'>('despesa');
-  const [newCatColor, setNewCatColor] = useState('#94a3b8');
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
-  const handleAddCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName) return;
-    
-    addCategory({
-      name: newCatName,
-      type: newCatType,
-      color: newCatColor,
-      icon: 'Tag' // Default icon
-    });
-    
-    setNewCatName('');
-    setNewCatColor('#94a3b8');
-    setIsAdding(false);
+  const handleDelete = async () => {
+    if (categoryToDelete) {
+      await deleteCategory(categoryToDelete.id);
+      setCategoryToDelete(null);
+    }
+  };
+
+  const handleDeleteClick = (cat: Category) => {
+    setCategoryToDelete(cat);
+  };
+
+  const getTransactionsCount = (catId: string) => {
+    return transactions.filter(t => t.categoryId === catId).length;
   };
 
   return (
@@ -36,92 +33,76 @@ export function Categories() {
           <h1 style={{ marginBottom: 0 }}>Categorias</h1>
           <p className="text-secondary">Gerencie como você classifica seus lançamentos</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
-          <Plus size={18} /> Adicionar Categoria
+        <button className="btn btn-primary md:hidden" onClick={() => openCategoryModal()}>
+          <Plus size={18} /> Nova
         </button>
       </div>
 
-      {isAdding && (
-        <div className="card mb-6 animate-fade-in border-l-4" style={{ borderLeftColor: 'var(--primary-color)' }}>
-          <h3 className="mb-4 text-primary">Nova Categoria</h3>
-          <form onSubmit={handleAddCategory} className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="form-group flex-1 m-0">
-              <label className="form-label">Nome</label>
-              <input 
-                type="text" 
-                className="form-control"
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                required
-                placeholder="Ex: Pets, Viagem..."
-              />
-            </div>
-            
-            <div className="form-group m-0" style={{ minWidth: 150 }}>
-              <label className="form-label">Tipo</label>
-              <select 
-                className="form-control"
-                value={newCatType}
-                onChange={(e) => setNewCatType(e.target.value as any)}
-              >
-                <option value="despesa">Despesa</option>
-                <option value="receita">Receita</option>
-                <option value="ambos">Ambos</option>
-              </select>
-            </div>
-
-            <div className="form-group m-0">
-              <label className="form-label">Cor</label>
-              <input 
-                type="color" 
-                className="form-control"
-                value={newCatColor}
-                onChange={(e) => setNewCatColor(e.target.value)}
-                style={{ width: 60, padding: '0.2rem' }}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button type="button" className="btn btn-secondary" onClick={() => setIsAdding(false)}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Salvar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {categories.map((cat: Category) => {
           const IconComp = (Icons as any)[cat.icon] || Tag;
+          const isGrey = cat.color === '#94a3b8' || !cat.color;
+          // Apply a default color dynamically if it's still grey from legacy data
+          const displayColor = isGrey ? '#3b82f6' : cat.color;
           
           return (
-            <div key={cat.id} className="card flex items-center gap-4">
-              <div 
-                style={{ 
-                  backgroundColor: `${cat.color}20`, 
-                  color: cat.color,
-                  padding: '1rem',
-                  borderRadius: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <IconComp size={24} />
+            <div key={cat.id} className="card flex items-center justify-between group relative hover:border-[rgba(255,255,255,0.15)] transition-colors">
+              <div className="flex items-center gap-4">
+                <div 
+                  style={{ 
+                    backgroundColor: `${displayColor}20`, 
+                    color: displayColor,
+                    padding: '1rem',
+                    borderRadius: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <IconComp size={24} />
+                </div>
+                <div>
+                  <h3 className="m-0" style={{ fontSize: '1rem', marginBottom: 0 }}>{cat.name}</h3>
+                  <span className="badge mt-1" style={{ fontSize: '0.7rem' }}>
+                    {cat.type}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="m-0" style={{ fontSize: '1rem', marginBottom: 0 }}>{cat.name}</h3>
-                <span className="badge mt-1" style={{ fontSize: '0.7rem' }}>
-                  {cat.type}
-                </span>
+
+              {/* Ações Hover */}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
+                <button 
+                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-primary"
+                  onClick={() => openCategoryModal(cat)}
+                  title="Editar categoria"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button 
+                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(248,113,113,0.1)] text-danger"
+                  onClick={() => handleDeleteClick(cat)}
+                  title="Excluir categoria"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      <CategoryModal />
+      <ConfirmModal 
+        isOpen={!!categoryToDelete}
+        title="Excluir Categoria"
+        message={
+          categoryToDelete && getTransactionsCount(categoryToDelete.id) > 0
+            ? `Esta categoria possui ${getTransactionsCount(categoryToDelete.id)} lançamento(s). Deseja excluí-la mesmo assim? Esta ação não pode ser desfeita.`
+            : `Tem certeza que deseja excluir a categoria "${categoryToDelete?.name}"? Esta ação não pode ser desfeita.`
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setCategoryToDelete(null)}
+      />
     </div>
   );
 }
