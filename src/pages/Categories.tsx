@@ -33,8 +33,8 @@ export function Categories() {
           <h1 style={{ marginBottom: 0 }}>Categorias</h1>
           <p className="text-secondary">Gerencie como você classifica seus lançamentos</p>
         </div>
-        <button className="btn btn-primary md:hidden" onClick={() => openCategoryModal()}>
-          <Plus size={18} /> Nova
+        <button className="btn btn-primary" onClick={() => openCategoryModal()}>
+          <Plus size={18} /> Nova Categoria
         </button>
       </div>
 
@@ -69,17 +69,17 @@ export function Categories() {
                 </div>
               </div>
 
-              {/* Ações Hover */}
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
+              {/* Ações CRUD sempre visíveis */}
+              <div className="flex gap-2">
                 <button 
-                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-primary"
+                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-primary transition-colors"
                   onClick={() => openCategoryModal(cat)}
                   title="Editar categoria"
                 >
                   <Pencil size={16} />
                 </button>
                 <button 
-                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(248,113,113,0.1)] text-danger"
+                  className="p-2 rounded bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(248,113,113,0.1)] text-danger transition-colors"
                   onClick={() => handleDeleteClick(cat)}
                   title="Excluir categoria"
                 >
