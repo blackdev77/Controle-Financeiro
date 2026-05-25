@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserSettings, Goals } from '../types';
-import { Download, Upload } from 'lucide-react';
+import { Download, Upload, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 export function Settings() {
   const { settings, goals, categories, updateSettings, updateGoals } = useStore();
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'geral' | 'metas' | 'dados'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'metas' | 'dados' | 'seguranca'>('geral');
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,6 +18,13 @@ export function Settings() {
     name: settings.name || user?.user_metadata?.name || user?.email || ''
   });
   const [localGoals, setLocalGoals] = useState<Goals>(goals);
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Update local state if global state changes externally
   useEffect(() => {
@@ -79,6 +87,34 @@ export function Settings() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleUpdatePassword = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('As senhas não coincidem.');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setPasswordError('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    setUpdatingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setUpdatingPassword(false);
+
+    if (error) {
+      setPasswordError(error.message);
+    } else {
+      setPasswordSuccess('Senha atualizada com sucesso!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(''), 3000);
+    }
+  };
+
   return (
     <div>
       <h1 className="mb-6 tracking-tight">Configurações</h1>
@@ -103,6 +139,12 @@ export function Settings() {
             onClick={() => setActiveTab('dados')}
           >
             Dados (Backup)
+          </button>
+          <button 
+            className={`w-full text-left px-6 py-4 font-medium transition-colors ${activeTab === 'seguranca' ? 'text-[var(--primary-color)] bg-[rgba(255,255,255,0.02)] border-r-2 border-[var(--primary-color)]' : 'text-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.02)]'}`}
+            onClick={() => setActiveTab('seguranca')}
+          >
+            Segurança
           </button>
         </div>
 
@@ -225,16 +267,78 @@ export function Settings() {
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-[var(--border-color)] flex items-center justify-end gap-4">
-            {saved && <span className="text-[var(--success-color)] text-sm font-medium animate-fade-in">Configurações salvas!</span>}
-            <button 
-              className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed" 
-              onClick={saveSettings}
-              disabled={!isDirty}
-            >
-              Salvar Alterações
-            </button>
-          </div>
+          {activeTab === 'seguranca' && (
+            <div className="space-y-6 animate-fade-in w-full max-w-2xl">
+              <h2 className="text-xl mb-4 tracking-tight">Segurança</h2>
+              <p className="text-secondary mb-6">Altere sua senha de acesso ao sistema.</p>
+              
+              <div className="form-group max-w-md">
+                <label className="form-label">Nova Senha</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control pr-10" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group max-w-md">
+                <label className="form-label">Confirmar Nova Senha</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control pr-10" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita a nova senha"
+                  />
+                </div>
+              </div>
+
+              {passwordError && (
+                <div className="text-[var(--danger-color)] text-sm mb-4">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="text-[var(--success-color)] text-sm mb-4">
+                  {passwordSuccess}
+                </div>
+              )}
+
+              <button 
+                className="btn btn-primary"
+                onClick={handleUpdatePassword}
+                disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 6 || updatingPassword}
+              >
+                {updatingPassword ? 'Atualizando...' : 'Atualizar Senha'}
+              </button>
+            </div>
+          )}
+
+          {activeTab !== 'seguranca' && (
+            <div className="mt-8 pt-6 border-t border-[var(--border-color)] flex items-center justify-end gap-4">
+              {saved && <span className="text-[var(--success-color)] text-sm font-medium animate-fade-in">Configurações salvas!</span>}
+              <button 
+                className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed" 
+                onClick={saveSettings}
+                disabled={!isDirty}
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

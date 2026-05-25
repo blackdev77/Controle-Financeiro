@@ -17,6 +17,7 @@ import {
 import { useStore } from '../store/useStore';
 import { useAuth } from '../contexts/AuthContext';
 import { TransactionModal } from './TransactionModal';
+import { OnboardingModal } from './OnboardingModal';
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -176,6 +177,7 @@ export function Layout() {
         )}
 
         <TransactionModal />
+        <OnboardingModal />
       </main>
     </div>
   );
