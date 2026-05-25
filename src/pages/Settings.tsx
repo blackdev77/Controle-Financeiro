@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserSettings, Goals } from '../types';
-import { Download, Upload, Eye, EyeOff } from 'lucide-react';
+import { Download, Upload, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export function Settings() {
-  const { settings, goals, categories, updateSettings, updateGoals } = useStore();
+  const { settings, goals, categories, updateSettings, updateGoals, deleteUserAllData } = useStore();
   const { user } = useAuth();
   
   const [activeTab, setActiveTab] = useState<'geral' | 'metas' | 'dados' | 'seguranca'>('geral');
@@ -25,6 +26,8 @@ export function Settings() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Update local state if global state changes externally
   useEffect(() => {
@@ -96,8 +99,9 @@ export function Settings() {
       return;
     }
     
-    if (newPassword.length < 6) {
-      setPasswordError('A senha deve ter no mínimo 6 caracteres.');
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setPasswordError('A nova senha deve ter no mínimo 8 caracteres, contendo pelo menos 1 letra e 1 número.');
       return;
     }
 
@@ -113,6 +117,11 @@ export function Settings() {
       setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(''), 3000);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    await deleteUserAllData();
   };
 
   return (
@@ -324,6 +333,22 @@ export function Settings() {
               >
                 {updatingPassword ? 'Atualizando...' : 'Atualizar Senha'}
               </button>
+
+              <div className="mt-12 pt-6 border-t border-[var(--danger-color)]/20">
+                <h3 className="text-lg font-medium text-[var(--danger-color)] mb-2 flex items-center gap-2">
+                  <AlertTriangle size={20} /> Zona de Perigo
+                </h3>
+                <p className="text-secondary text-sm mb-4">
+                  A exclusão da conta apagará permanentemente todos os seus dados (contas, categorias, lançamentos) e não poderá ser desfeita. (Direito ao Esquecimento - LGPD Art. 18)
+                </p>
+                <button 
+                  className="btn bg-[var(--danger-color)]/10 text-[var(--danger-color)] hover:bg-[var(--danger-color)] hover:text-white transition-colors"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deletingAccount}
+                >
+                  {deletingAccount ? 'Excluindo dados...' : 'Excluir Conta Permanentemente'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -341,6 +366,16 @@ export function Settings() {
           )}
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showDeleteConfirm}
+        title="Excluir Conta Permanentemente"
+        message="Tem certeza absoluta que deseja excluir sua conta e todos os dados vinculados a ela? Esta ação é irreversível."
+        confirmText="Sim, Excluir Tudo"
+        cancelText="Cancelar"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

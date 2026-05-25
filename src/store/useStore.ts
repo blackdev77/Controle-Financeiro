@@ -33,6 +33,8 @@ interface AppState {
   updateAccount: (id: string, a: Partial<Account>) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
   
+  deleteUserAllData: () => Promise<void>;
+  
   updateSettings: (s: Partial<UserSettings>) => void;
   updateGoals: (g: Partial<Goals>) => void;
 
@@ -277,5 +279,22 @@ export const useStore = create<AppState>((set) => ({
   updateGoals: (g) => set((state) => ({
     goals: { ...state.goals, ...g }
   })),
+
+  deleteUserAllData: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    
+    // Deleta os dados das tabelas publicas para respeitar o direito ao esquecimento da LGPD
+    await Promise.all([
+      supabase.from('transactions').delete().eq('user_id', session.user.id),
+      supabase.from('accounts').delete().eq('user_id', session.user.id),
+      supabase.from('categories').delete().eq('user_id', session.user.id)
+    ]);
+    
+    // Limpa estado local
+    set({ accounts: [], categories: [], transactions: [] });
+    // Faz logout final
+    await supabase.auth.signOut();
+  },
 
 }));

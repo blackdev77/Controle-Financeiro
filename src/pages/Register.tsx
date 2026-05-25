@@ -10,12 +10,25 @@ export function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (!agreeTerms) {
+      setError('Você precisa concordar com os Termos de Uso e a Política de Privacidade para continuar.');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError('Sua senha deve ter no mínimo 8 caracteres, contendo pelo menos 1 letra e 1 número.');
+      return;
+    }
+
+    setLoading(true);
 
     const { error, data } = await supabase.auth.signUp({
       email,
@@ -96,7 +109,20 @@ export function Register() {
               </div>
             </div>
 
-            <button 
+            <div className="form-group mb-6 flex items-start gap-2">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                className="mt-1"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+              />
+              <label htmlFor="terms" className="text-sm text-secondary cursor-pointer leading-tight">
+                Concordo com os <a href="#" className="text-[var(--primary-color)] hover:underline" onClick={e => e.preventDefault()}>Termos de Uso</a> e a <a href="#" className="text-[var(--primary-color)] hover:underline" onClick={e => e.preventDefault()}>Política de Privacidade</a>.
+              </label>
+            </div>
+
+            <button  
               type="submit" 
               className="btn btn-primary w-full h-12 text-base"
               disabled={loading}
